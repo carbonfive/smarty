@@ -81,19 +81,24 @@ EOM
 
     def handle_ask(user, data, args, &respond)
       puts "handle_ask"
+      wc = @bot.client.web_client
       t = data.text.downcase
       if [ 'y', 'yes' ].include? t
         someone = "someone"
+        emoji = ":bust_in_silhouette:"
+        icon = nil
       elsif [ 'n', 'no' ].include? t
         someone = "@#{user.username}"
+        emoji = nil
+        response = wc.users_info user: user.slack_id
+        icon = response.user.profile.image_48
       else
         return handle_question user, data, args, &respond
       end
 
-      wc = @bot.client.web_client
       channel = 'test'
       message = "Hey everyone, #{someone} has a question...\n```#{user.question}```"
-      response = wc.chat_postMessage channel: channel, text: message
+      response = wc.chat_postMessage channel: channel, text: message, icon_emoji: emoji, icon_url: icon, username: "Dr. Smarty"
       ts = response.ts.sub '.', ''
       link = "https://carbonfive.slack.com/archives/#{channel}/p#{ts}"
       question = Question.new text: user.question, link: link
