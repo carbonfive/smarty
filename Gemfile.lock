@@ -1,11 +1,6 @@
-PATH
-  remote: .
-  specs:
-    smarty (1.0)
-      slacky
-
-PATH
-  remote: /Users/mike/Projects/slacky
+GIT
+  remote: git://github.com/carbonfive/slacky.git
+  revision: f5c150888abb96baf0646473a34306ee5e71b1f0
   specs:
     slacky (1.0)
       eventmachine
@@ -14,6 +9,12 @@ PATH
       slack-ruby-client (>= 0.6)
       tzinfo
       tzinfo-data
+
+PATH
+  remote: .
+  specs:
+    smarty (1.0)
+      slacky
 
 GEM
   remote: http://rubygems.org/
@@ -53,7 +54,7 @@ GEM
     thread_safe (0.3.5)
     tzinfo (1.2.2)
       thread_safe (~> 0.1)
-    tzinfo-data (1.2016.3)
+    tzinfo-data (1.2016.4)
       tzinfo (>= 1.0.0)
     websocket-driver (0.6.3)
       websocket-extensions (>= 0.1.0)
@@ -68,3 +69,6 @@ DEPENDENCIES
   rake
   slacky!
   smarty!
+
+BUNDLED WITH
+   1.11.2
