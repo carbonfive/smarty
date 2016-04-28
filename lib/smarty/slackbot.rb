@@ -41,6 +41,8 @@ EOM
       end
       if user.step == nil
         handle_question user, data, args, &respond
+      elsif user.step == :anonymous
+        handle_anonymous user, data, args, &respond
       elsif user.step == :ask
         handle_ask user, data, args, &respond
       else
@@ -59,7 +61,21 @@ EOM
       questions.each { |q| respond.call q.link }
       respond.call "If none of these help, I can ask folks now.  Should I ask now?  (yes or no)"
       user.question = data.text
-      user.step = :ask
+      user.step = :anonymous
+      true
+    end
+
+    def handle_anonymous(user, data, args, &respond)
+      puts "handle_anonymous"
+      t = data.text.downcase
+      if [ 'y', 'yes' ].include? t
+        respond.call "Great, I'll go ahead and ask.  Should I post this question anonymously?  (yes or no)"
+        user.step = :ask
+      elsif [ 'n', 'no' ].include? t
+        user.reset
+      else
+        handle_question user, data, args, &respond
+      end
       true
     end
 
@@ -67,22 +83,25 @@ EOM
       puts "handle_ask"
       t = data.text.downcase
       if [ 'y', 'yes' ].include? t
-        wc = @bot.client.web_client
-        channel = 'test'
-        wc.chat_postMessage channel: channel, text: "Hey everyone, someone has a question..."
-        response = wc.chat_postMessage channel: channel, text: "```#{user.question}```"
-        ts = response.ts.sub '.', ''
-        link = "https://carbonfive.slack.com/archives/#{channel}/p#{ts}"
-        question = Question.new text: user.question, link: link
-        question.save
-        user.step = :anonymous
+        someone = "someone"
       elsif [ 'n', 'no' ].include? t
-        user.reset
+        someone = "@#{user.username}"
       else
-        handle_question user, data, args, &respond
+        return handle_question user, data, args, &respond
       end
 
+      wc = @bot.client.web_client
+      channel = 'test'
+      message = "Hey everyone, #{someone} has a question...\n```#{user.question}```"
+      response = wc.chat_postMessage channel: channel, text: message
+      ts = response.ts.sub '.', ''
+      link = "https://carbonfive.slack.com/archives/#{channel}/p#{ts}"
+      question = Question.new text: user.question, link: link
+      question.save
+      user.step = :anonymous
+      respond.call "Ok, I asked your question at #{link}"
       true
     end
+
   end
 end
