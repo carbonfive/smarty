@@ -43,30 +43,41 @@ EOM
         handle_question user, data, args, &respond
       elsif user.step == :ask
         handle_ask user, data, args, &respond
+      else
+        puts "Huh?  #{user.step}"
+        user.reset
       end
       user.save
       true
     end
 
     def handle_question(user, data, args, &respond)
-      questions = Question.find data.text
-      # respond with links
-      # respond "should we ask community"
+      puts "handle_question"
+      questions = Question.search data.text
+      respond.call "Thanks for your question, #{user.first_name}"
+      respond.call "I found some previous topics in Slack that might help out:"
+      questions.each { |q| respond.call q.link }
+      respond.call "If none of these help, I can ask folks now.  Should I ask now?  (yes or no)"
       user.question = data.text
       user.step = :ask
+      true
     end
 
     def handle_ask(user, data, args, &respond)
-      # if yes
-      #   post question
-      question = Question.new(text: user.question)
-      question.save
-      # else if no
-      #   reset
-      # else
-      #   reset
-      #   goto step 1
-      user.step = :anonymous
+      puts "handle_ask"
+      t = data.text.downcase
+      if [ 'y', 'yes' ].include? t
+        # post question
+        question = Question.new(text: user.question)
+        question.save
+        user.step = :anonymous
+      elsif [ 'n', 'no' ].include? t
+        user.reset
+      else
+        handle_question user, data, args, &respond
+      end
+
+      true
     end
   end
 end
