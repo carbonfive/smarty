@@ -39,8 +39,34 @@ EOM
       if data.text.downcase == 'help'
         return help user, data, args, &respond
       end
-      respond.call "Hi!"
+      if user.step == nil
+        handle_question user, data, args, &respond
+      elsif user.step == :ask
+        handle_ask user, data, args, &respond
+      end
+      user.save
       true
+    end
+
+    def handle_question(user, data, args, &respond)
+      questions = Question.find data.text
+      # respond with links
+      # respond "should we ask community"
+      user.question = data.text
+      user.step = :ask
+    end
+
+    def handle_ask(user, data, args, &respond)
+      # if yes
+      #   post question
+      question = Question.new(text: user.question)
+      question.save
+      # else if no
+      #   reset
+      # else
+      #   reset
+      #   goto step 1
+      user.step = :anonymous
     end
   end
 end
