@@ -67,8 +67,13 @@ EOM
       puts "handle_ask"
       t = data.text.downcase
       if [ 'y', 'yes' ].include? t
-        # post question
-        question = Question.new(text: user.question)
+        wc = @bot.client.web_client
+        channel = 'test'
+        wc.chat_postMessage channel: channel, text: "Hey everyone, someone has a question..."
+        response = wc.chat_postMessage channel: channel, text: "```#{user.question}```"
+        ts = response.ts.sub '.', ''
+        link = "https://carbonfive.slack.com/archives/#{channel}/p#{ts}"
+        question = Question.new text: user.question, link: link
         question.save
         user.step = :anonymous
       elsif [ 'n', 'no' ].include? t
