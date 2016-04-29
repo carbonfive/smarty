@@ -41,13 +41,13 @@ module Smarty
       return if data.subtype == 'bot_message'
 
       wc = @bot.client.web_client
-      if data.text.split(' ').length >= 5 && data.text =~ /\?$/
+      if data.text.split(' ').length >= 5 && data.text =~ /\?/
         p data
         user = Slacky::User.find data.user
         im = wc.im_open user: user.slack_id
         channel = @good_channels[data.channel]
         message = "Hi, it looks like you just asked a question in ##{channel}:\n```#{data.text}```\nI can remember your question and any related conversation for later use.  Should I do that?"
-        wc.chat_postMessage channel: im.channel.id, text: message, as_user: false, icon_url: GENERAL_ICON_URL, username: "Dr. Smarty"
+        wc.chat_postMessage channel: im.channel.id, text: message, as_user: false, icon_url: AVATAR_ICON_URL, username: "Dr. Smarty"
         ts = data.ts.sub '.', ''
         link = "https://carbonfive.slack.com/archives/#{channel}/p#{ts}"
         user.question = data.text
