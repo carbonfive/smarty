@@ -21,7 +21,8 @@ module Smarty
         index: INDEX,
         body: {
           query: { match: { text: text } },
-          size: 5
+          size: 5,
+          min_score: 0.5
         }
       })
 
