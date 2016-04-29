@@ -105,7 +105,7 @@ EOM
     def handle_anonymous(user, data, args, &respond)
       puts "handle_anonymous"
       if yes? data.text
-        respond.call "Great, I'll go ahead and ask.  Should I post this question anonymously?"
+        respond.call "Ok I'll ask the group in a sec.  Should I post this question anonymously?"
         user.step = :channel
       elsif no? data.text
         respond.call "Ok, see you later. :kissing_heart:"
