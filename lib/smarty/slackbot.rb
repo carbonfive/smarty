@@ -127,8 +127,8 @@ EOM
         respond.call "Interesting question, I haven't heard it before.  Should I bring it to the group?"
       else
         questions_links = questions.map(&:link).join('\n')
-        respond.call "Oh, I've heard people talking about this before.  Maybe these will help:\n#{questions_links}\n\n" +
-                     "If these aren't helpful, we can bring it to the group.  Should I do that now?"
+        respond.call "Oh, I've heard people talking about this before.  Maybe these will help:\n#{questions_links}"
+        respond.call "If these aren't helpful, we can bring it to the group.  Should I do that now?"
       end
       user.question = data.text
       user.step = :anonymous
