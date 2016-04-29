@@ -1,5 +1,4 @@
 require 'elasticsearch'
-require 'awesome_print'
 
 module Smarty
   class Slackbot
