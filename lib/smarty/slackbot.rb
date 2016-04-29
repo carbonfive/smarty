@@ -62,9 +62,7 @@ EOM
     def dm(user, data, args, &respond)
       return false if data.channel !~ /^D/
       user.slack_im_id = data.channel
-      if data.text.downcase == 'help'
-        return help user, data, args, &respond
-      end
+      return if [ 'help', 'whatsup' ].include? data.text.downcase
       if user.step == nil
         handle_question user, data, args, &respond
       elsif user.step == :anonymous
@@ -81,11 +79,24 @@ EOM
       true
     end
 
+    def yes?(text)
+      [ 'y', 'yes' ].include? text.downcase
+    end
+
+    def no?(text)
+      [ 'n', 'no' ].include? text.downcase
+    end
+
     def handle_question(user, data, args, &respond)
       puts "handle_question"
       questions = Question.search data.text
-      respond.call search_results(questions)
-      respond.call prompt_to_ask_community
+      if questions.empty?
+        respond.call "Interesting question, I haven't heard it before.  Should I bring it to the group?"
+      else
+        questions_links = questions.map(&:link).join('\n')
+        respond.call "Oh, I've heard people talking about this before.  Maybe these will help:\n#{questions_links}\n\n" +
+                     "If these aren't helpful, we can bring it to the group.  Should I do that now?"
+      end
       user.question = data.text
       user.step = :anonymous
       true
@@ -93,11 +104,10 @@ EOM
 
     def handle_anonymous(user, data, args, &respond)
       puts "handle_anonymous"
-      t = data.text.downcase
-      if [ 'y', 'yes' ].include? t
-        respond.call "Great, I'll go ahead and ask.  Should I post this question anonymously?  (yes or no)"
+      if yes? data.text
+        respond.call "Great, I'll go ahead and ask.  Should I post this question anonymously?"
         user.step = :channel
-      elsif [ 'n', 'no' ].include? t
+      elsif no? data.text
         respond.call "Ok, see you later. :kissing_heart:"
         user.reset
       else
@@ -108,16 +118,15 @@ EOM
 
     def handle_channel(user, data, args, &respond)
       puts "handle_channel"
-      t = data.text.downcase
-      if [ 'y', 'yes' ].include? t
+      if yes? data.text
         user.anonymous = true
-      elsif [ 'n', 'no' ].include? t
+      elsif no? data.text
         user.anonymous = false
       else
         return handle_question user, data, args, &respond
       end
 
-      respond.call "Got it.  So then what channel should I post it to?  (#general, #development, #design, etc)"
+      respond.call "Got it.  What channel should I post it to?  (#general, #development, #design, etc)"
       user.step = :ask
       true
     end
@@ -183,21 +192,6 @@ EOM
       return unless user.channel == channel_name
       ask user, channel, channel_name
       user.save
-    end
-
-    private
-
-    def search_results(questions)
-      if questions.empty?
-        "I don't think that question has been asked before."
-      else
-        questions_links = questions.map(&:link).join('\n')
-        "I found some previous topics in Slack that might help out:\n#{questions_links}"
-      end
-    end
-
-    def prompt_to_ask_community
-      "If isn't helpful, I can ask folks now.  Should I ask now?  (yes or no)"
     end
   end
 end
