@@ -32,8 +32,7 @@ EOM
     end
 
     def whatsup(user, data, args, &respond)
-      respond.call "What's up with you?"
-      true
+      help user, data, args, &respond
     end
 
     def dm(user, data, args, &respond)
