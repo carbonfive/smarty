@@ -221,7 +221,7 @@ EOM
       elsif no? data.text
         respond.call "Ok, no problemo.  I'll leave this one alone.  FYI, you can learn more about me by typing `help`."
       else
-        respond.call "Err... I didn't understand that.  Tell you want, I'm not gonna do anything right now.  But you can learn more about me by typing `help`.  See you soon!  :kissing_heart:"
+        respond.call "Err... I didn't understand that.  Tell you what, I'm not gonna do anything right now.  But you can learn more about me by typing `help`.  See you soon!  :kissing_heart:"
       end
       user.reset
     end
