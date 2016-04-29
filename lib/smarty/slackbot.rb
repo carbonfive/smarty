@@ -43,6 +43,8 @@ EOM
         handle_question user, data, args, &respond
       elsif user.step == :anonymous
         handle_anonymous user, data, args, &respond
+      elsif user.step == :channel
+        handle_channel user, data, args, &respond
       elsif user.step == :ask
         handle_ask user, data, args, &respond
       else
@@ -70,8 +72,9 @@ EOM
       t = data.text.downcase
       if [ 'y', 'yes' ].include? t
         respond.call "Great, I'll go ahead and ask.  Should I post this question anonymously?  (yes or no)"
-        user.step = :ask
+        user.step = :channel
       elsif [ 'n', 'no' ].include? t
+        respond.call "Ok, see you later"
         user.reset
       else
         handle_question user, data, args, &respond
@@ -79,32 +82,65 @@ EOM
       true
     end
 
-    def handle_ask(user, data, args, &respond)
-      puts "handle_ask"
-      wc = @bot.client.web_client
+    def handle_channel(user, data, args, &respond)
+      puts "handle_channel"
       t = data.text.downcase
       if [ 'y', 'yes' ].include? t
-        someone = "someone"
-        emoji = ":bust_in_silhouette:"
-        icon = nil
+        user.anonymous = true
       elsif [ 'n', 'no' ].include? t
-        someone = "@#{user.username}"
-        emoji = nil
-        response = wc.users_info user: user.slack_id
-        icon = response.user.profile.image_48
+        user.anonymous = false
       else
         return handle_question user, data, args, &respond
       end
 
-      channel = 'test'
+      respond.call "Got it.  So then what channel should I post it to?  (#general, #development, #design, etc)"
+      user.step = :ask
+    end
+
+    def handle_ask(user, data, args, &respond)
+      puts "handle_ask"
+
+      channel = nil
+      channel_name = nil
+      wc = @bot.client.web_client
+      if matches = data.text.match(/^<#(\w+)>$/)
+        channel = matches.captures[0]
+        response = wc.channels_info channel: channel
+        channel_name = response.channel.name
+        unless response.channel.members.include? @bot.slack_id
+          respond.call "I don't seem to have access to that channel.  Before I can post messages you need to invite me to join the channel.\n" +
+                       "Sorry, but you have to start over by asking your question again.  :open_mouth:"
+          user.reset
+          return true
+        end
+      elsif data.text =~ /^#\w+$/
+        respond.call "That channel does not exist.  Did you misspell it?\n" +
+                     "Sorry, but you have to start over by asking your question again.  :open_mouth:"
+        user.reset
+        return true
+      else
+        return handle_question user, data, args, &respond
+      end
+
+      if user.anonymous?
+        someone = "someone"
+        emoji = ":bust_in_silhouette:"
+        icon = nil
+      else
+        someone = "@#{user.username}"
+        emoji = nil
+        response = wc.users_info user: user.slack_id
+        icon = response.user.profile.image_48
+      end
+
       message = "Hey everyone, #{someone} has a question...\n```#{user.question}```"
       response = wc.chat_postMessage channel: channel, text: message, icon_emoji: emoji, icon_url: icon, username: "Dr. Smarty"
       ts = response.ts.sub '.', ''
-      link = "https://carbonfive.slack.com/archives/#{channel}/p#{ts}"
+      link = "https://carbonfive.slack.com/archives/#{channel_name}/p#{ts}"
       question = Question.new text: user.question, link: link
       question.save
-      user.step = :anonymous
       respond.call "Ok, I asked your question at #{link}"
+      user.reset
       true
     end
 

@@ -17,6 +17,14 @@ module Smarty
       step ? step.to_sym : nil
     end
 
+    def anonymous=(anonymous)
+      @data['anonymous'] = anonymous
+    end
+
+    def anonymous?
+      @data['anonymous']
+    end
+
     def reset
       self.question = nil
       self.step = nil
