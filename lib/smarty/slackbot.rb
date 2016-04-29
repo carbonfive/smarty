@@ -191,7 +191,7 @@ EOM
       if questions.empty?
         "I don't think that question has been asked before."
       else
-        questions_links = @questions.map(&:link).join('\n')
+        questions_links = questions.map(&:link).join('\n')
         "I found some previous topics in Slack that might help out:\n#{questions_links}"
       end
     end

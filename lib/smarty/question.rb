@@ -25,6 +25,8 @@ module Smarty
         }
       })
 
+      puts "ES results: -->"
+      p results
       SearchResponse.new(results)
     end
 
