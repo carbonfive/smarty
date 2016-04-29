@@ -39,6 +39,7 @@ module Smarty
       return unless @good_channels[data.channel]
       return if data.user == @bot.slack_id
       return if data.subtype == 'bot_message'
+      return unless data.text
 
       wc = @bot.client.web_client
       if data.text.split(' ').length >= 5 && data.text =~ /\?/
