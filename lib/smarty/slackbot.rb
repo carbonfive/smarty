@@ -3,8 +3,7 @@ require 'elasticsearch'
 module Smarty
   class Slackbot
 
-    GENERAL_ICON_URL = "http://sdurham.net/smarty/general/bot0.png"
-    DM_ICON_URL = "http://sdurham.net/smarty/dm/bot0.png"
+    AVATAR_ICON_URL = "http://sdurham.net/smarty/dm/bot0.jpg"
 
     def initialize(bot)
       channels = [ 'test', 'general', 'development', 'design', 'product_management' ]
@@ -204,13 +203,13 @@ EOM
               'text': user.question
           }
 
-      response = wc.chat_postMessage channel: channel, as_user: false, attachments: [attachments], icon_url: GENERAL_ICON_URL, username: "Dr. Smarty"
+      response = wc.chat_postMessage channel: channel, as_user: false, attachments: [attachments], icon_url: AVATAR_ICON_URL, username: "Dr. Smarty"
       ts = response.ts.sub '.', ''
       link = "https://carbonfive.slack.com/archives/#{channel_name}/p#{ts}"
       question = Question.new text: user.question, link: link
       question.save
       message = "Ok, I asked your question at #{link}. See you next time! :fist:"
-      wc.chat_postMessage channel: user.slack_im_id, as_user: false, text: message, icon_url: DM_ICON_URL, username: "Dr. Smarty"
+      wc.chat_postMessage channel: user.slack_im_id, as_user: false, text: message, icon_url: AVATAR_ICON_URL, username: "Dr. Smarty"
       user.reset
     end
 
