@@ -10,6 +10,8 @@ module Smarty
       @bot.on_help(&(method :help))
       @bot.on 'whatsup', &(method :whatsup)
       @bot.on String,    &(method :dm)
+
+      @bot.client.on 'channel_joined', &(method :joined)
     end
 
     def help(user, data, args, &respond)
@@ -36,6 +38,7 @@ EOM
 
     def dm(user, data, args, &respond)
       return false if data.channel !~ /^D/
+      user.slack_im_id = data.channel
       if data.text.downcase == 'help'
         return help user, data, args, &respond
       end
@@ -58,7 +61,7 @@ EOM
     def handle_question(user, data, args, &respond)
       puts "handle_question"
       questions = Question.search data.text
-      respond.call "Thanks for your question, #{user.first_name}"
+      respond.call "Thanks for your question, #{user.first_name}."
       respond.call "I found some previous topics in Slack that might help out:"
       questions.each { |q| respond.call q.link }
       respond.call "If none of these help, I can ask folks now.  Should I ask now?  (yes or no)"
@@ -74,7 +77,7 @@ EOM
         respond.call "Great, I'll go ahead and ask.  Should I post this question anonymously?  (yes or no)"
         user.step = :channel
       elsif [ 'n', 'no' ].include? t
-        respond.call "Ok, see you later"
+        respond.call "Ok, see you later. :kissing_heart:"
         user.reset
       else
         handle_question user, data, args, &respond
@@ -108,19 +111,23 @@ EOM
         response = wc.channels_info channel: channel
         channel_name = response.channel.name
         unless response.channel.members.include? @bot.slack_id
-          respond.call "I don't seem to have access to that channel.  Before I can post messages you need to invite me to join the channel.\n" +
-                       "Sorry, but you have to start over by asking your question again.  :open_mouth:"
-          user.reset
-          return true
+          user.channel = channel_name
+          respond.call "I don't seem to have access to that channel.  If you go invite me now I'll post your question.  Or you can choose a new channel."
+          return
         end
       elsif data.text =~ /^#\w+$/
-        respond.call "That channel does not exist.  Did you misspell it?\n" +
-                     "Sorry, but you have to start over by asking your question again.  :open_mouth:"
-        user.reset
-        return true
+        respond.call "That channel does not exist.  Did you misspell it?  Try again. I'll wait... :thinking_face:"
+        return
       else
         return handle_question user, data, args, &respond
       end
+
+      ask user, channel, channel_name
+      user.reset
+    end
+
+    def ask(user, channel, channel_name)
+      wc = @bot.client.web_client
 
       if user.anonymous?
         someone = "someone"
@@ -133,15 +140,27 @@ EOM
         icon = response.user.profile.image_48
       end
 
-      message = "Hey everyone, #{someone} has a question...\n```#{user.question}```"
+      message = "Hey @channel, #{someone} has a question...\n```#{user.question}```"
       response = wc.chat_postMessage channel: channel, text: message, icon_emoji: emoji, icon_url: icon, username: "Dr. Smarty"
       ts = response.ts.sub '.', ''
       link = "https://carbonfive.slack.com/archives/#{channel_name}/p#{ts}"
       question = Question.new text: user.question, link: link
       question.save
-      respond.call "Ok, I asked your question at #{link}"
+      message = "Ok, I asked your question at #{link}. See you next time! :fist:"
+      wc.chat_postMessage channel: user.slack_im_id, text: message, icon_emoji: ":nerd_face:", username: "Dr. Smarty"
       user.reset
-      true
+    end
+
+    def joined(data)
+      channel = data.channel.id
+      response = @bot.client.web_client.channels_history channel: channel, count: 3
+      invitation = response.messages.find { |m| m.subtype == 'channel_join' && m.inviter? }
+      return unless invitation
+      user = Slacky::User.find invitation.inviter
+      channel_name = data.channel.name
+      return unless user.channel == channel_name
+      ask user, channel, channel_name
+      user.save
     end
 
   end

@@ -25,9 +25,16 @@ module Smarty
       @data['anonymous']
     end
 
+    def channel=(channel)
+      @data['channel'] = channel
+    end
+
+    def channel
+      @data['channel']
+    end
+
     def reset
-      self.question = nil
-      self.step = nil
+      @data = {}
     end
   end
 end
