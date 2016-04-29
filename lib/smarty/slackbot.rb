@@ -2,6 +2,10 @@ require 'elasticsearch'
 
 module Smarty
   class Slackbot
+
+    GENERAL_ICON_URL = "http://sdurham.net/smarty/general/bot0.png"
+    DM_ICON_URL = "http://sdurham.net/smarty/dm/bot0.png"
+
     def initialize(bot)
       Slacky::User.decorator = User
 
@@ -159,26 +163,33 @@ EOM
 
     def ask(user, channel, channel_name)
       wc = @bot.client.web_client
-
       if user.anonymous?
-        someone = "someone"
-        emoji = ":bust_in_silhouette:"
-        icon = nil
+        someone = "anonymous user"
+        icon = random_anonymous_icon
       else
-        someone = "<@#{user.slack_id}>"
-        emoji = nil
+        someone = user.username
         response = wc.users_info user: user.slack_id
         icon = response.user.profile.image_48
       end
 
-      message = "Hey <!channel>, #{someone} has a question...\n```#{user.question}```"
-      response = wc.chat_postMessage channel: channel, text: message, icon_emoji: emoji, icon_url: icon, username: "Dr. Smarty"
+      message = "Hey <!channel>, someone has a question..."
+      attachments =
+          {
+              'fallback': message,
+              'author_name': someone,
+              'author_icon': icon,
+              'color': '#51bf92',
+              'pretext': message,
+              'text': user.question
+          }
+
+      response = wc.chat_postMessage channel: channel, as_user: false, attachments: [attachments], icon_url: GENERAL_ICON_URL, username: "Dr. Smarty"
       ts = response.ts.sub '.', ''
       link = "https://carbonfive.slack.com/archives/#{channel_name}/p#{ts}"
       question = Question.new text: user.question, link: link
       question.save
       message = "Ok, I asked your question at #{link}. See you next time! :fist:"
-      wc.chat_postMessage channel: user.slack_im_id, text: message, icon_emoji: ":nerd_face:", username: "Dr. Smarty"
+      wc.chat_postMessage channel: user.slack_im_id, as_user: false, text: message, icon_url: DM_ICON_URL, username: "Dr. Smarty"
       user.reset
     end
 
@@ -193,5 +204,10 @@ EOM
       ask user, channel, channel_name
       user.save
     end
+
+    def random_anonymous_icon
+      url = "http://sdurham.net/smarty/anonymous/bot#{rand(0..9)}.png"
+    end
+
   end
 end
