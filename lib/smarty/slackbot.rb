@@ -183,10 +183,12 @@ EOM
       wc = @bot.client.web_client
       if user.anonymous?
         someone = "anonymous user"
-        icon = random_anonymous_icon
+        big_icon = random_anonymous_icon
+        icon = nil
       else
         someone = user.username
         response = wc.users_info user: user.slack_id
+        big_icon = AVATAR_ICON_URL
         icon = response.user.profile.image_48
       end
 
@@ -201,7 +203,7 @@ EOM
               'text': user.question
           }
 
-      response = wc.chat_postMessage channel: channel, as_user: false, attachments: [attachments], icon_url: AVATAR_ICON_URL, username: "Dr. Smarty"
+      response = wc.chat_postMessage channel: channel, as_user: false, attachments: [attachments], icon_url: big_icon, username: "Dr. Smarty"
       ts = response.ts.sub '.', ''
       link = "https://carbonfive.slack.com/archives/#{channel_name}/p#{ts}"
       question = Question.new text: user.question, link: link
@@ -237,7 +239,7 @@ EOM
     end
 
     def random_anonymous_icon
-      "http://sdurham.net/smarty/anonymous/bot#{rand(0..9)}.png"
+      "http://sdurham.net/smarty/anonymous/bot#{rand(0..9)}.jpg"
     end
   end
 end
