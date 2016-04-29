@@ -1,20 +1,47 @@
 module Smarty
   class Question
+    INDEX = 'smarty'
+    TYPE = 'question'
 
-    attr_accessor :link, :text
+    attr_accessor :link, :text, :persisted
 
-    def initialize(link:, text:)
-      @link = link
-      @text = text
+    def self.config=(config)
+      @@config = config
     end
 
+    def initialize(link:, text:, persisted: false)
+      @link = link
+      @text = text
+      @persisted = persisted
+    end
+
+    # Returns an array of Questions
     def self.search(text)
-      [ Question.new(link: "https://carbonfive.slack.com/archives/codeo/p1461863849000033", text: "What is the Codeo?") ]
+      results = client.search({
+        index: INDEX,
+        body: {
+          query: { match: { text: text } },
+          size: 5
+        }
+      })
+
+      puts "ES results: -->"
+      p results
+      SearchResponse.new(results)
     end
 
     def save
-
+      return if persisted
+      Question.client.index(index: INDEX, type: TYPE, body: {
+        text: text,
+        link: link
+      })
     end
 
+    private
+
+    def self.client
+      @@config.es
+    end
   end
 end

@@ -14,6 +14,7 @@ PATH
   remote: .
   specs:
     smarty (1.0)
+      elasticsearch
       slacky
 
 GEM
@@ -25,6 +26,14 @@ GEM
       minitest (~> 5.1)
       thread_safe (~> 0.3, >= 0.3.4)
       tzinfo (~> 1.1)
+    elasticsearch (1.0.17)
+      elasticsearch-api (= 1.0.17)
+      elasticsearch-transport (= 1.0.17)
+    elasticsearch-api (1.0.17)
+      multi_json
+    elasticsearch-transport (1.0.17)
+      faraday
+      multi_json
     eventmachine (1.2.0.1)
     factory_girl (4.5.0)
       activesupport (>= 3.0.0)
@@ -40,6 +49,7 @@ GEM
     i18n (0.7.0)
     json (1.8.3)
     minitest (5.8.4)
+    multi_json (1.11.3)
     multipart-post (2.0.0)
     pg (0.18.4)
     rake (10.5.0)
