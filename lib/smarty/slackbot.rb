@@ -116,7 +116,7 @@ EOM
       else
         links = questions.map(&:link)
         respond.call "Oh, I've heard people talking about this before.  Maybe these will help:\n"
-        links.each { |link| respond.call link }
+        links.each { |link| respond.call "#{link}##{(Time.now.to_f * 10000).truncate}" }
         respond.call "If these aren't helpful, we can bring it to the group.  Should I do that now?"
       end
       user.question = data.text
