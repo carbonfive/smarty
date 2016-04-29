@@ -1,3 +1,5 @@
+require 'elasticsearch'
+
 module Smarty
   class Slackbot
     def initialize(bot)
@@ -6,12 +8,34 @@ module Smarty
       @config = bot.config
       @config.extend Config
 
+      init_elasticsearch
+
+      Question.config = @config
+
       @bot = bot
       @bot.on_help(&(method :help))
       @bot.on 'whatsup', &(method :whatsup)
       @bot.on String,    &(method :dm)
 
       @bot.client.on 'channel_joined', &(method :joined)
+    end
+
+    def init_elasticsearch
+      puts "Using ES: #{@config.es_client_url}"
+      es = @config.es
+      unless es.indices.exists? index: Question::INDEX
+        es.indices.create index: Question::INDEX,
+          body: {
+            mappings: {
+              document: {
+                properties: {
+                  text: { type: 'string', index: 'analyzed' },
+                  link: { type: 'string', index: 'not_analyzed' }
+                }
+              }
+            }
+          }
+      end
     end
 
     def help(user, data, args, &respond)

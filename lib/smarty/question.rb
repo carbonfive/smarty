@@ -5,6 +5,10 @@ module Smarty
 
     attr_accessor :link, :text, :persisted
 
+    def self.config=(config)
+      @@config = config
+    end
+
     def initialize(link:, text:, persisted: false)
       @link = link
       @text = text
@@ -26,7 +30,7 @@ module Smarty
 
     def save
       return if persisted
-      client.index(index: INDEX, type: TYPE, body: {
+      Question.client.index(index: INDEX, type: TYPE, body: {
         text: text,
         link: link
       })
@@ -34,8 +38,8 @@ module Smarty
 
     private
 
-    def client
-      Smarty::Config.es
+    def self.client
+      @@config.es
     end
   end
 end
