@@ -16,9 +16,9 @@ module Smarty
       @config = bot.config
       @config.extend Config
 
-      init_elasticsearch
-
       Question.config = @config
+
+      init_elasticsearch
 
       @bot = bot
       @bot.on_help(&(method :help))
@@ -30,21 +30,10 @@ module Smarty
     end
 
     def init_elasticsearch
-      puts "Using ES: #{@config.es_client_url}"
-      es = @config.es
-      unless es.indices.exists? index: Question::INDEX
-        es.indices.create index: Question::INDEX,
-          body: {
-            mappings: {
-              document: {
-                properties: {
-                  text: { type: 'string', index: 'analyzed' },
-                  link: { type: 'string', index: 'not_analyzed' }
-                }
-              }
-            }
-          }
-      end
+      # Reset for Demo
+      Question.delete_index
+      Question.create_index
+      Question.seed
     end
 
     def question_detector(data)
@@ -92,6 +81,8 @@ EOM
 
     def dm(user, data, args, &respond)
       return false if data.channel !~ /^D/
+      puts "data.channel = #{data.channel}"
+      puts "data.text = #{data.text}"
       user.slack_im_id = data.channel
       return if [ 'help', 'whatsup' ].include? data.text.downcase
       if user.step == nil
@@ -126,7 +117,7 @@ EOM
       if questions.empty?
         respond.call "Interesting question, I haven't heard it before.  Should I bring it to the group?"
       else
-        questions_links = questions.map(&:link).join('\n')
+        questions_links = questions.map(&:link).join("\n")
         respond.call "Oh, I've heard people talking about this before.  Maybe these will help:\n#{questions_links}"
         respond.call "If these aren't helpful, we can bring it to the group.  Should I do that now?"
       end
@@ -248,8 +239,7 @@ EOM
     end
 
     def random_anonymous_icon
-      url = "http://sdurham.net/smarty/anonymous/bot#{rand(0..9)}.png"
+      "http://sdurham.net/smarty/anonymous/bot#{rand(0..9)}.png"
     end
-
   end
 end
