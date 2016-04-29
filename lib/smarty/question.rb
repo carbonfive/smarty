@@ -33,6 +33,7 @@ module Smarty
 
     def save
       return if persisted
+      puts "Save question: #{text}"
       Question.client.index(index: INDEX, type: TYPE, body: {
         text: text,
         link: link

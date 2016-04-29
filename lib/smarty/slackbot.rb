@@ -80,8 +80,6 @@ EOM
 
     def dm(user, data, args, &respond)
       return false if data.channel !~ /^D/
-      puts "data.channel = #{data.channel}"
-      puts "data.text = #{data.text}"
       user.slack_im_id = data.channel
       return if [ 'help', 'whatsup' ].include? data.text.downcase
       if user.step == nil
