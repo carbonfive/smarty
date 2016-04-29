@@ -7,6 +7,10 @@ module Smarty
     DM_ICON_URL = "http://sdurham.net/smarty/dm/bot0.png"
 
     def initialize(bot)
+      channels = [ 'test', 'general', 'development', 'design', 'product_management' ]
+      resp = bot.client.web_client.channels_list
+      @good_channels = Hash[resp.channels.select {|c| channels.include? c.name}.map {|c| [ c.id, c.name ]}]
+
       Slacky::User.decorator = User
 
       @config = bot.config
@@ -22,6 +26,7 @@ module Smarty
       @bot.on String,    &(method :dm)
 
       @bot.client.on 'channel_joined', &(method :joined)
+      @bot.client.on 'message', &(method :question_detector)
     end
 
     def init_elasticsearch
@@ -39,6 +44,28 @@ module Smarty
               }
             }
           }
+      end
+    end
+
+    def question_detector(data)
+      return unless @good_channels[data.channel]
+      return if data.user == @bot.slack_id
+      return if data.subtype == 'bot_message'
+
+      wc = @bot.client.web_client
+      if data.text.split(' ').length >= 5 && data.text =~ /\?$/
+        p data
+        user = Slacky::User.find data.user
+        im = wc.im_open user: user.slack_id
+        channel = @good_channels[data.channel]
+        message = "Hi, it looks like you just asked a question in ##{channel}:\n```#{data.text}```\nI can remember your question and any related conversation for later use.  Should I do that?"
+        wc.chat_postMessage channel: im.channel.id, text: message, as_user: false, icon_url: GENERAL_ICON_URL, username: "Dr. Smarty"
+        ts = data.ts.sub '.', ''
+        link = "https://carbonfive.slack.com/archives/#{channel}/p#{ts}"
+        user.question = data.text
+        user.link = link
+        user.step = :detect
+        user.save
       end
     end
 
@@ -75,6 +102,8 @@ EOM
         handle_channel user, data, args, &respond
       elsif user.step == :ask
         handle_ask user, data, args, &respond
+      elsif user.step == :detect
+        handle_detect user, data, args, &respond
       else
         puts "Huh?  #{user.step}"
         user.reset
@@ -190,6 +219,19 @@ EOM
       question.save
       message = "Ok, I asked your question at #{link}. See you next time! :fist:"
       wc.chat_postMessage channel: user.slack_im_id, as_user: false, text: message, icon_url: DM_ICON_URL, username: "Dr. Smarty"
+      user.reset
+    end
+
+    def handle_detect(user, data, args, &respond)
+      puts "handle_detect"
+      if yes? data.text
+        respond.call "Excellent!  Consider it done.  FYI, you can learn more about me just by typing `help`."
+        Question.new(text: user.question, link: user.link).save
+      elsif no? data.text
+        respond.call "Ok, no problemo.  I'll leave this one alone.  FYI, you can learn more about me by typing `help`."
+      else
+        respond.call "Err... I didn't understand that.  Tell you want, I'm not gonna do anything right now.  But you can learn more about me by typing `help`.  See you soon!  :kissing_heart:"
+      end
       user.reset
     end
 

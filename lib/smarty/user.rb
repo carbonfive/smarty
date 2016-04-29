@@ -8,6 +8,14 @@ module Smarty
       @data['question']
     end
 
+    def link=(link)
+      @data['link'] = link
+    end
+
+    def link
+      @data['link']
+    end
+
     def step=(step)
       @data['step'] = step ? step.to_s : nil
     end
