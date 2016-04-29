@@ -1,4 +1,5 @@
 require 'elasticsearch'
+require 'awesome_print'
 
 module Smarty
   class Slackbot
@@ -159,20 +160,28 @@ EOM
 
     def ask(user, channel, channel_name)
       wc = @bot.client.web_client
-
       if user.anonymous?
         someone = "someone"
-        emoji = ":bust_in_silhouette:"
-        icon = nil
       else
-        someone = "<@#{user.slack_id}>"
-        emoji = nil
+        someone = user.username
         response = wc.users_info user: user.slack_id
-        icon = response.user.profile.image_48
       end
 
-      message = "Hey <!channel>, #{someone} has a question...\n```#{user.question}```"
-      response = wc.chat_postMessage channel: channel, text: message, icon_emoji: emoji, icon_url: icon, username: "Dr. Smarty"
+      message = "Hey <!channel>, someone has a question..."
+      attachments =
+          {
+              'fallback': message,
+              'color': '#51bf92',
+              'pretext': message,
+              'text': user.question
+          }
+
+      unless user.anonymous?
+        attachments['author_name'] = someone
+        attachments['author_icon'] = response.user.profile.image_48
+      end
+
+      response = wc.chat_postMessage channel: channel, attachments: [attachments], icon_emoji: ':nerd_face:', username: "Dr. Smarty"
       ts = response.ts.sub '.', ''
       link = "https://carbonfive.slack.com/archives/#{channel_name}/p#{ts}"
       question = Question.new text: user.question, link: link
@@ -193,5 +202,6 @@ EOM
       ask user, channel, channel_name
       user.save
     end
+
   end
 end
