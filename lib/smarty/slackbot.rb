@@ -134,13 +134,13 @@ EOM
         emoji = ":bust_in_silhouette:"
         icon = nil
       else
-        someone = "@#{user.username}"
+        someone = "<@#{user.slack_id}>"
         emoji = nil
         response = wc.users_info user: user.slack_id
         icon = response.user.profile.image_48
       end
 
-      message = "Hey @channel, #{someone} has a question...\n```#{user.question}```"
+      message = "Hey <!channel>, #{someone} has a question...\n```#{user.question}```"
       response = wc.chat_postMessage channel: channel, text: message, icon_emoji: emoji, icon_url: icon, username: "Dr. Smarty"
       ts = response.ts.sub '.', ''
       link = "https://carbonfive.slack.com/archives/#{channel_name}/p#{ts}"
