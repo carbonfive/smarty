@@ -22,7 +22,7 @@ module Smarty
         body: {
           query: { match: { text: text } },
           size: 5,
-          min_score: 0.5
+          min_score: 0.01
         }
       })
 
