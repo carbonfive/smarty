@@ -61,10 +61,8 @@ EOM
     def handle_question(user, data, args, &respond)
       puts "handle_question"
       questions = Question.search data.text
-      respond.call "Thanks for your question, #{user.first_name}."
-      respond.call "I found some previous topics in Slack that might help out:"
-      questions.each { |q| respond.call q.link }
-      respond.call "If none of these help, I can ask folks now.  Should I ask now?  (yes or no)"
+      respond.call search_results(questions)
+      respond.call prompt_to_ask_community
       user.question = data.text
       user.step = :anonymous
       true
@@ -98,6 +96,7 @@ EOM
 
       respond.call "Got it.  So then what channel should I post it to?  (#general, #development, #design, etc)"
       user.step = :ask
+      true
     end
 
     def handle_ask(user, data, args, &respond)
@@ -163,5 +162,19 @@ EOM
       user.save
     end
 
+    private
+
+    def search_results(questions)
+      if questions.empty?
+        "I don't think that question has been asked before."
+      else
+        questions_links = @questions.map(&:link).join('\n')
+        "I found some previous topics in Slack that might help out:\n#{questions_links}"
+      end
+    end
+
+    def prompt_to_ask_community
+      "If isn't helpful, I can ask folks now.  Should I ask now?  (yes or no)"
+    end
   end
 end
