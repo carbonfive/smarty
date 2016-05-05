@@ -5,7 +5,7 @@ module Smarty
     end
 
     def es_client_url
-      @config[:es_client_url]
+      ENV['ES_CLIENT_URL']
     end
   end
 end

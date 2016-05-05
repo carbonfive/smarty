@@ -6,26 +6,22 @@ module Smarty
     AVATAR_ICON_URL = "http://sdurham.net/smarty/dm/bot0.jpg"
 
     def initialize(bot)
-      channels = [ 'test', 'general', 'development', 'design', 'product_management' ]
-      resp = bot.client.web_client.channels_list
-      @good_channels = Hash[resp.channels.select {|c| channels.include? c.name}.map {|c| [ c.id, c.name ]}]
-
+      bot.config.extend Config
+      Question.config = bot.config
       Slacky::User.decorator = User
-
-      @config = bot.config
-      @config.extend Config
-
-      Question.config = @config
+      Slacky::Message.decorator = Message
 
       init_elasticsearch
 
-      @bot = bot
-      @bot.on_help(&(method :help))
-      @bot.on 'whatsup', &(method :whatsup)
-      @bot.on String,    &(method :dm)
+      listen_channels = Slacky::Channel.find [ '#test', '#general', '#development', '#design', '#product_management' ]
 
-      @bot.client.on 'channel_joined', &(method :joined)
-      @bot.client.on 'message', &(method :question_detector)
+      @bot = bot
+      @bot.on_command 'whatsup', &(method :whatsup)
+      @bot.on_command 'help',    &(method :help)
+      @bot.on_im nil, &(method :dm)
+      @bot.on_message({ channels: listen_channels }, &(method :question_detector))
+
+      @bot.on 'channel_joined', &(method :joined)
     end
 
     def init_elasticsearch
@@ -35,32 +31,27 @@ module Smarty
       Question.seed
     end
 
-    def question_detector(data)
-      return unless @good_channels[data.channel]
-      return if data.user == @bot.slack_id
-      return if data.subtype == 'bot_message'
-      return unless data.text
+    def question_detector(message)
+      return if message.raw.subtype == 'bot_message'
 
-      wc = @bot.client.web_client
-      if data.text.split(' ').length >= 5 && data.text =~ /\?/
-        p data
-        user = Slacky::User.find data.user
-        im = wc.im_open user: user.slack_id
-        channel = @good_channels[data.channel]
-        message = "Hi, it looks like you just asked a question in ##{channel}:\n```#{data.text}```\nI can remember your question and any related conversation for later use.  Should I do that?"
-        wc.chat_postMessage channel: im.channel.id, text: message, as_user: false, icon_url: AVATAR_ICON_URL, username: "Dr. Smarty"
-        ts = data.ts.sub '.', ''
-        link = "https://carbonfive.slack.com/archives/#{channel}/p#{ts}"
-        user.question = data.text
-        user.link = link
-        user.step = :detect
-        user.save
+      wc = @bot.web_client
+      if message.question?
+        im = wc.im_open user: message.user.slack_id
+        channel_name = message.channel.name
+        msg = "Hi, it looks like you just asked a question in ##{channel_name}:\n```#{message.text}```\nI can remember your question and any related conversation for later use.  Should I do that?"
+        wc.chat_postMessage channel: im.channel.id, text: msg, as_user: false, icon_url: AVATAR_ICON_URL, username: "Dr. Smarty"
+        ts = message.raw.ts.sub '.', ''
+        link = "https://carbonfive.slack.com/archives/#{channel_name}/p#{ts}"
+        message.user.question = message.text
+        message.user.link = link
+        message.user.step = :detect
+        message.user.save
       end
     end
 
-    def help(user, data, args, &respond)
-      respond.call "Hello, I am Smarty.  I can do the following things:"
-      respond.call <<EOM
+    def help(message)
+      message.reply "Hello, I am Smarty.  I can do the following things:"
+      message.reply <<EOM
 ```
 smarty help              Show this message
 smarty whatsup           I'll ask you back
@@ -75,113 +66,87 @@ EOM
       true
     end
 
-    def whatsup(user, data, args, &respond)
-      help user, data, args, &respond
+    def whatsup(message)
+      help message
     end
 
-    def dm(user, data, args, &respond)
-      return false if data.channel !~ /^D/
-      user.slack_im_id = data.channel
-      return if [ 'help', 'whatsup' ].include? data.text.downcase
-      if user.step == nil
-        handle_question user, data, args, &respond
-      elsif user.step == :anonymous
-        handle_anonymous user, data, args, &respond
-      elsif user.step == :channel
-        handle_channel user, data, args, &respond
-      elsif user.step == :ask
-        handle_ask user, data, args, &respond
-      elsif user.step == :detect
-        handle_detect user, data, args, &respond
+    def dm(message)
+      return if [ 'help', 'whatsup' ].include? message.text
+      case message.user.step
+      when nil        ; handle_question message
+      when :anonymous ; handle_anonymous message
+      when :channel   ; handle_channel message
+      when :ask       ; handle_ask message
+      when :detect    ; handle_detect message
       else
-        puts "Huh?  #{user.step}"
-        user.reset
+        puts "Huh? #{message.user.step}"
+        message.user.reset
       end
-      user.save
-      true
+      message.user.save
     end
 
-    def yes?(text)
-      [ 'y', 'yes' ].include? text.downcase
-    end
-
-    def no?(text)
-      [ 'n', 'no' ].include? text.downcase
-    end
-
-    def handle_question(user, data, args, &respond)
+    def handle_question(message)
       puts "handle_question"
-      questions = Question.search data.text
+      questions = Question.search message.text
       if questions.empty?
-        respond.call "Interesting question, I haven't heard it before.  Should I bring it to the group?"
+        message.reply "Interesting question, I haven't heard it before.  Should I bring it to the group?"
       else
         links = questions.map(&:link)
-        respond.call "Oh, I've heard people talking about this before.  Maybe these will help:\n"
-        links.each { |link| respond.call "#{link}##{(Time.now.to_f * 10000).truncate}" }
-        respond.call "If these aren't helpful, we can bring it to the group.  Should I do that now?"
+        message.reply "Oh, I've heard people talking about this before.  Maybe these will help:\n"
+        links.each { |link| message.reply "#{link}##{(Time.now.to_f * 10000).truncate}" }
+        message.reply "If these aren't helpful, we can bring it to the group.  Should I do that now?"
       end
-      user.question = data.text
-      user.step = :anonymous
-      true
+      message.user.question = message.text
+      message.user.step = :anonymous
     end
 
-    def handle_anonymous(user, data, args, &respond)
+    def handle_anonymous(message)
       puts "handle_anonymous"
-      if yes? data.text
-        respond.call "Ok I'll ask the group in a sec.  Should I post this question anonymously?"
-        user.step = :channel
-      elsif no? data.text
-        respond.call "Ok, see you later. :kissing_heart:"
-        user.reset
+      if message.yes?
+        message.reply "Ok I'll ask the group in a sec.  Should I post this question anonymously?"
+        message.user.step = :channel
+      elsif message.no?
+        message.reply "Ok, see you later. :kissing_heart:"
+        message.user.reset
       else
-        handle_question user, data, args, &respond
+        handle_question message
       end
-      true
     end
 
-    def handle_channel(user, data, args, &respond)
+    def handle_channel(message)
       puts "handle_channel"
-      if yes? data.text
-        user.anonymous = true
-      elsif no? data.text
-        user.anonymous = false
+      if message.yes?
+        message.user.anonymous = true
+      elsif message.no?
+        message.user.anonymous = false
       else
-        return handle_question user, data, args, &respond
+        return handle_question message
       end
 
-      respond.call "Got it.  What channel should I post it to?  (#general, #development, #design, etc)"
-      user.step = :ask
-      true
+      message.reply "Got it.  What channel should I post it to?  (#general, #development, #design, etc)"
+      message.user.step = :ask
     end
 
-    def handle_ask(user, data, args, &respond)
+    def handle_ask(message)
       puts "handle_ask"
-
-      channel = nil
-      channel_name = nil
-      wc = @bot.client.web_client
-      if matches = data.text.match(/^<#(\w+)>$/)
-        channel = matches.captures[0]
-        response = wc.channels_info channel: channel
-        channel_name = response.channel.name
-        unless response.channel.members.include? @bot.slack_id
-          user.channel = channel_name
-          respond.call "I don't seem to have access to that channel.  If you go invite me now I'll post your question.  Or you can choose a new channel."
-          return
+      if matches = message.text.match(/^<#(\w+)>$/)
+        channel = Slacky::Channel.find matches.captures[0]
+        if channel.member?
+          ask message.user, channel
+          message.user.reset
+        else
+          message.user.channel = channel.name
+          message.reply "I don't seem to have access to that channel.  If you go invite me now I'll post your question.  Or you can choose a new channel."
         end
-      elsif data.text =~ /^#\w+$/
-        respond.call "That channel does not exist.  Did you misspell it?  Try again. I'll wait... :thinking_face:"
-        return
+      elsif message.text =~ /^#\w+$/
+        message.reply "That channel does not exist.  Did you misspell it?  Try again. I'll wait... :thinking_face:"
       else
-        return handle_question user, data, args, &respond
+        handle_question message
       end
-
-      ask user, channel, channel_name
-      user.reset
     end
 
-    def ask(user, channel, channel_name)
-      wc = @bot.client.web_client
+    def ask(user, channel)
+      wc = @bot.web_client
       if user.anonymous?
         someone = "anonymous user"
         big_icon = random_anonymous_icon
@@ -194,19 +159,18 @@ EOM
       end
 
       message = "Hey <!channel>, someone has a question..."
-      attachments =
-          {
-              'fallback': message,
-              'author_name': someone,
-              'author_icon': icon,
-              'color': '#51bf92',
-              'pretext': message,
-              'text': user.question
-          }
+      attachments = {
+        'fallback': message,
+        'author_name': someone,
+        'author_icon': icon,
+        'color': '#51bf92',
+        'pretext': message,
+        'text': user.question
+      }
 
-      response = wc.chat_postMessage channel: channel, as_user: false, attachments: [attachments], icon_url: big_icon, username: "Dr. Smarty"
+      response = wc.chat_postMessage channel: channel.slack_id, as_user: false, attachments: [attachments], icon_url: big_icon, username: "Dr. Smarty"
       ts = response.ts.sub '.', ''
-      link = "https://carbonfive.slack.com/archives/#{channel_name}/p#{ts}"
+      link = "https://carbonfive.slack.com/archives/#{channel.name}/p#{ts}"
       question = Question.new text: user.question, link: link
       question.save
       message = "Ok, I asked your question at #{link}. See you next time! :fist:"
@@ -214,28 +178,27 @@ EOM
       user.reset
     end
 
-    def handle_detect(user, data, args, &respond)
+    def handle_detect(message)
       puts "handle_detect"
-      if yes? data.text
-        respond.call "Excellent!  Consider it done.  FYI, you can learn more about me just by typing `help`."
-        Question.new(text: user.question, link: user.link).save
-      elsif no? data.text
-        respond.call "Ok, no problemo.  I'll leave this one alone.  FYI, you can learn more about me by typing `help`."
+      if message.yes?
+        message.reply "Excellent!  Consider it done.  FYI, you can learn more about me just by typing `help`."
+        Question.new(text: message.user.question, link: message.user.link).save
+      elsif message.no?
+        message.reply "Ok, no problemo.  I'll leave this one alone.  FYI, you can learn more about me by typing `help`."
       else
-        respond.call "Err... I didn't understand that.  Tell you what, I'm not gonna do anything right now.  But you can learn more about me by typing `help`.  See you soon!  :kissing_heart:"
+        message.reply "Err... I didn't understand that.  Tell you what, I'm not gonna do anything right now.  But you can learn more about me by typing `help`.  See you soon!  :kissing_heart:"
       end
-      user.reset
+      message.user.reset
     end
 
     def joined(data)
-      channel = data.channel.id
-      response = @bot.client.web_client.channels_history channel: channel, count: 3
+      channel = Channel.find data.channel.id
+      response = @bot.web_client.channels_history channel: channel.slack_id, count: 3
       invitation = response.messages.find { |m| m.subtype == 'channel_join' && m.inviter? }
       return unless invitation
       user = Slacky::User.find invitation.inviter
-      channel_name = data.channel.name
-      return unless user.channel == channel_name
-      ask user, channel, channel_name
+      return unless user.channel == channel.name
+      ask user, channel
       user.save
     end
 

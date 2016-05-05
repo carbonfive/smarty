@@ -1,21 +1,21 @@
-GIT
-  remote: git://github.com/carbonfive/slacky.git
-  revision: 09f85ad0fdd6ed7ca76a0817775191905ca45aec
-  specs:
-    slacky (1.0)
-      eventmachine
-      faye-websocket
-      pg
-      slack-ruby-client (>= 0.6)
-      tzinfo
-      tzinfo-data
-
 PATH
   remote: .
   specs:
     smarty (1.0)
       elasticsearch
       slacky
+
+PATH
+  remote: /Users/mike/Projects/slacky
+  specs:
+    slacky (1.0)
+      dotenv
+      eventmachine
+      faye-websocket
+      pg
+      slack-ruby-client (>= 0.6)
+      tzinfo
+      tzinfo-data
 
 GEM
   remote: http://rubygems.org/
@@ -26,6 +26,7 @@ GEM
       minitest (~> 5.1)
       thread_safe (~> 0.3, >= 0.3.4)
       tzinfo (~> 1.1)
+    dotenv (2.1.1)
     elasticsearch (1.0.17)
       elasticsearch-api (= 1.0.17)
       elasticsearch-transport (= 1.0.17)
@@ -53,7 +54,7 @@ GEM
     multipart-post (2.0.0)
     pg (0.18.4)
     rake (10.5.0)
-    slack-ruby-client (0.7.0)
+    slack-ruby-client (0.7.1)
       activesupport
       faraday
       faraday_middleware
