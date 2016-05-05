@@ -71,7 +71,6 @@ EOM
     end
 
     def dm(message)
-      return if [ 'help', 'whatsup' ].include? message.text
       case message.user.step
       when nil        ; handle_question message
       when :anonymous ; handle_anonymous message
