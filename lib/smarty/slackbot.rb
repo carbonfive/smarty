@@ -25,10 +25,12 @@ module Smarty
     end
 
     def init_elasticsearch
-      # Reset for Demo
-      Question.delete_index
-      Question.create_index
-      Question.seed
+      # Question.delete_index
+      if Question.create_index
+        Question.seed
+      else
+        Question.update_index
+      end
     end
 
     def question_detector(message)
@@ -85,12 +87,11 @@ EOM
     end
 
     def handle_question(message)
-      puts "handle_question"
-      questions = Question.search message.text
-      if questions.empty?
+      results = Question.search message.text
+      if results.empty?
         message.reply "Interesting question, I haven't heard it before.  Should I bring it to the group?"
       else
-        links = questions.map(&:link)
+        links = results.map(&:question).map(&:link)
         message.reply "Oh, I've heard people talking about this before.  Maybe these will help:\n"
         links.each { |link| message.reply "#{link}##{(Time.now.to_f * 10000).truncate}" }
         message.reply "If these aren't helpful, we can bring it to the group.  Should I do that now?"
@@ -100,7 +101,6 @@ EOM
     end
 
     def handle_anonymous(message)
-      puts "handle_anonymous"
       if message.yes?
         message.reply "Ok I'll ask the group in a sec.  Should I post this question anonymously?"
         message.user.step = :channel
@@ -113,7 +113,6 @@ EOM
     end
 
     def handle_channel(message)
-      puts "handle_channel"
       if message.yes?
         message.user.anonymous = true
       elsif message.no?
@@ -127,7 +126,6 @@ EOM
     end
 
     def handle_ask(message)
-      puts "handle_ask"
       if matches = message.text.match(/^<#(\w+)>$/)
         channel = Slacky::Channel.find matches.captures[0]
         if channel.member?
@@ -178,7 +176,6 @@ EOM
     end
 
     def handle_detect(message)
-      puts "handle_detect"
       if message.yes?
         message.reply "Excellent!  Consider it done.  FYI, you can learn more about me just by typing `help`."
         Question.new(text: message.user.question, link: message.user.link).save

@@ -3,19 +3,7 @@ PATH
   specs:
     smarty (1.0)
       elasticsearch
-      slacky
-
-PATH
-  remote: /Users/mike/Projects/slacky
-  specs:
-    slacky (1.0)
-      dotenv
-      eventmachine
-      faye-websocket
-      pg
-      slack-ruby-client (>= 0.6)
-      tzinfo
-      tzinfo-data
+      slacky (>= 0.2)
 
 GEM
   remote: http://rubygems.org/
@@ -35,6 +23,9 @@ GEM
     elasticsearch-transport (1.0.17)
       faraday
       multi_json
+    em-cron (0.2.0)
+      eventmachine
+      parse-cron (~> 0.1)
     eventmachine (1.2.0.1)
     factory_girl (4.5.0)
       activesupport (>= 3.0.0)
@@ -42,19 +33,20 @@ GEM
       multipart-post (>= 1.2, < 3)
     faraday_middleware (0.10.0)
       faraday (>= 0.7.4, < 0.10)
-    faye-websocket (0.10.3)
+    faye-websocket (0.10.4)
       eventmachine (>= 0.12.0)
       websocket-driver (>= 0.5.1)
-    gli (2.13.4)
+    gli (2.14.0)
     hashie (3.4.4)
     i18n (0.7.0)
     json (1.8.3)
     minitest (5.8.4)
-    multi_json (1.11.3)
+    multi_json (1.12.1)
     multipart-post (2.0.0)
+    parse-cron (0.1.4)
     pg (0.18.4)
     rake (10.5.0)
-    slack-ruby-client (0.7.1)
+    slack-ruby-client (0.7.3)
       activesupport
       faraday
       faraday_middleware
@@ -62,12 +54,21 @@ GEM
       hashie
       json
       websocket-driver
+    slacky (0.2)
+      dotenv
+      em-cron
+      eventmachine
+      faye-websocket
+      pg
+      slack-ruby-client (>= 0.6)
+      tzinfo
+      tzinfo-data
     thread_safe (0.3.5)
     tzinfo (1.2.2)
       thread_safe (~> 0.1)
     tzinfo-data (1.2016.4)
       tzinfo (>= 1.0.0)
-    websocket-driver (0.6.3)
+    websocket-driver (0.6.4)
       websocket-extensions (>= 0.1.0)
     websocket-extensions (0.1.2)
 
@@ -78,7 +79,6 @@ DEPENDENCIES
   factory_girl
   minitest
   rake
-  slacky!
   smarty!
 
 BUNDLED WITH
