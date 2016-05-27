@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 
-version=`ruby -r ./lib/parky/version.rb -e 'puts Smarty::VERSION'`
+version=`ruby -r ./lib/smarty/version.rb -e 'puts Smarty::VERSION'`
 dest=$1
-ssh="ssh root@$dest"
+ssh="ssh $dest"
+sshr="ssh root@$dest"
 
 rake build
 scp pkg/smarty-$version.gem root@$dest:
 $ssh "which smarty && smarty stop"
-$ssh "gem list | grep smarty && gem uninstall smarty"
-$ssh "gem install --no-ri --no-rdoc ./smarty-$version.gem"
+$sshr "gem list | grep smarty && gem uninstall smarty"
+$sshr "gem install --no-ri --no-rdoc ./smarty-$version.gem"
+$sshr "rm -f ./smarty-$version.gem"
 $ssh "smarty start"
-$ssh "rm -f ./smarty-$version.gem"
