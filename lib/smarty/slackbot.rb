@@ -13,7 +13,7 @@ module Smarty
 
       init_elasticsearch
 
-      listen_channels = Slacky::Channel.find [ '#test', '#general', '#development', '#design', '#product_management' ]
+      listen_channels = Slacky::Channel.find bot.config.listen_channels
 
       @bot = bot
       @bot.on_command 'whatsup', &(method :whatsup)

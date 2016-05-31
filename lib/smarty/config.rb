@@ -7,5 +7,13 @@ module Smarty
     def es_client_url
       ENV['ES_CLIENT_URL']
     end
+
+    def listen_channels
+      ENV['LISTEN_CHANNELS'] || []
+    end
+
+    def admin_users
+      ENV['ADMIN_USERS'] || []
+    end
   end
 end
