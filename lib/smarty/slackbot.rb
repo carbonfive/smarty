@@ -158,7 +158,7 @@ EOM
         icon = response.user.profile.image_48
       end
 
-      message = "Hey <!channel>, someone has a question..."
+      message = "Hey <!here>, someone has a question..."
       attachments = {
         'fallback': message,
         'author_name': someone,
