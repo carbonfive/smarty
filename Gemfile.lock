@@ -3,7 +3,7 @@ PATH
   specs:
     smarty (1.0)
       elasticsearch
-      slacky (>= 0.2)
+      slacky (>= 0.2.1)
 
 GEM
   remote: http://rubygems.org/
@@ -46,7 +46,7 @@ GEM
     parse-cron (0.1.4)
     pg (0.18.4)
     rake (10.5.0)
-    slack-ruby-client (0.7.3)
+    slack-ruby-client (0.7.4)
       activesupport
       faraday
       faraday_middleware
@@ -54,7 +54,7 @@ GEM
       hashie
       json
       websocket-driver
-    slacky (0.2)
+    slacky (0.2.1)
       dotenv
       em-cron
       eventmachine

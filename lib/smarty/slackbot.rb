@@ -38,6 +38,7 @@ module Smarty
 
       wc = @bot.web_client
       if message.question?
+        message.typing
         im = wc.im_open user: message.user.slack_id
         channel_name = message.channel.name
         msg = "Hi, it looks like you just asked a question in ##{channel_name}:\n```#{message.text}```\nI can remember your question and any related conversation for later use.  Should I do that?"
@@ -52,6 +53,7 @@ module Smarty
     end
 
     def help(message)
+      message.typing
       message.reply "Hello, I am Smarty.  I can do the following things:"
       message.reply <<EOM
 ```
@@ -73,6 +75,7 @@ EOM
     end
 
     def dm(message)
+      message.typing
       case message.user.step
       when nil        ; handle_question message
       when :anonymous ; handle_anonymous message
